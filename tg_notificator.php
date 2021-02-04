@@ -5,7 +5,7 @@
 class TG_Notificator {
     protected const api_config = [
         "api" => "https://api.telegram.org/bot",
-        "token" => "", //TOKEN YOUR BOT (only *.txt)
+        "token" => "", //TOKEN YOUR BOT
     ];
 
     protected const chat_id = [     // List ID of recipient
@@ -36,10 +36,10 @@ class TG_Notificator {
     }
 }
 
-class Server_Health extends TG_Notificator {
+class Servers_Health extends TG_Notificator {
 
     protected const srv_config = [
-        'Space' => ['limit' => 60]
+        'Space' => ['limit' => 90]
     ];
 
     protected $serversBase = [
@@ -94,11 +94,11 @@ class Server_Health extends TG_Notificator {
     }
 
     public static function writeLastCountSpaceServers() {
-        //Здесь будет запись с использованием SQlite
+        //Здесь будет запись с использованием SQLite
     }
 
     public static function checkLastCountSpaceServers() {
-        //Здесь будет проверка с использованием SQlite
+        //Здесь будет проверка с использованием SQLite
     }
 
     public function checkSpaceServers() { // Main method for sended warning notifications if used space >= limit
@@ -122,7 +122,7 @@ class Server_Health extends TG_Notificator {
 }
 
 $tg_notificator = new TG_Notificator;
-$serverHealth = new Server_Health;
+$serverHealth = new Servers_Health;
 
 if (!empty($argv['1'])) { //The rule to exclude error
     //Listing Your rules for used arguments and method calling:
