@@ -18,9 +18,12 @@ class TG_Notificator {
 
     public function sendTelegram ($text = '', $chat_id = [], $show_log = false) { // Telegram sender method
         if (!$text) {
-            echo "Error in param for 'sendTelegram()'";
-            return false;
-        } 
+            $this->comment("ERROR in param for 'sendTelegram()'");
+            die;
+        } elseif (!$this::api_config["token"]) {
+            $this->comment("ERROR: not fount token!");
+            die;
+        }
 
         if (!$chat_id) $chat_id = $this::chat_id;
         elseif (is_array($chat_id) == false) $chat_id = [$chat_id];
@@ -108,7 +111,7 @@ class Servers_Health extends TG_Notificator {
             $db->query('
                 CREATE TABLE srv_space (
                     srv_id INTEGER NOT NULL PRIMARY KEY, 
-                    last_count_proc INTEGER NOT NULL DEFAULT 0
+                    last_percentage INTEGER NOT NULL DEFAULT 0
                 );
             ');
             $this->comment("Created DB."); #
@@ -160,12 +163,12 @@ class Servers_Health extends TG_Notificator {
         $this->comment("cheking used space on servers...");
         foreach ($this->serversBase as $srv) {
             foreach ($srv["partitions"] as $partition) {
-                $count = $this->sshRequest($srv['user'], $srv['ip'], "df -h --output=pcent /mnt/$partition | tr -dc '0-9'");
+                $percentage = $this->sshRequest($srv['user'], $srv['ip'], "df -h --output=pcent /mnt/$partition | tr -dc '0-9'");
                 $partition = ($partition == "1199161F24AC2113") ? $partition." (Backups)" : $partition;
 
-                if ($count >= $this::srv_config['Space']['limit']) {
+                if ($percentage >= $this::srv_config['Space']['limit']) {
                     $text = "ВНИМАНИЕ!%0AЗаканчивается свободное место на сервере!%0A%0AСервер: ".
-                        $srv['name']."%0AРаздел: $partition%0AИспользованного пространства: $count%";
+                        $srv['name']."%0AРаздел: $partition%0AИспользованного пространства: $percentage%";
                     $this->comment("sending warning to Telehram...");
                     $this->sendTelegram($text);
                 }
@@ -184,5 +187,5 @@ if (!empty($argv['1'])) { //The rule to exclude error
     if ($argv['1'] == 'check-space-servers') $serversHealth->checkSpaceServers(90);
     //elseif ($argv['1'] == 'check-db') $serversHealth->check_srv_db();
 
-    else $tg_notificator->comment("incorrect argument.");
-} else $tg_notificator->comment("not fount argument.");
+    else $tg_notificator->comment("ERROR: incorrect argument.");
+} else $tg_notificator->comment("ERROR: not fount argument.");
