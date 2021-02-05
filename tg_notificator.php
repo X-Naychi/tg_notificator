@@ -129,7 +129,7 @@ class Servers_Health extends TG_Notificator {
             }*/
 
             foreach ($this->serversBase as $srv_id => $value) { 
-                $db_srv_data = $this->dbGetArray($db, "SELECT srv_id, partition FROM srv_space WHERE srv_id=$srv_id");
+                $db_srv_data = $this->dbGetArray($db, "SELECT id, srv_id, partition FROM srv_space WHERE srv_id=$srv_id");
                 
                 foreach ($value['partitions'] as $partitions) {
                     
@@ -137,11 +137,12 @@ class Servers_Health extends TG_Notificator {
                         $db->query("INSERT INTO srv_space (srv_id, partition) VALUES ($srv_id, '$partitions');");
                         $this->comment($value['name'].' - "'.$partitions."\" added to DB."); #
                     } else {
-                        foreach($db_srv_data as $db_data) {                     #TODO This does not work
+                        print_r($db_srv_data);
+                        /*foreach($db_srv_data as $db_data) {                     #TODO This does not work
                             if ($db_data['partition'] != $partitions) {         #TODO This does not work
                                 $this->comment("DELETED id=".$db_data['id']);   #TODO This does not work
                             }                                                   #TODO This does not work
-                        }                                                       #TODO This does not work
+                        }*/                                                       #TODO This does not work
                     }
                 }
             }
