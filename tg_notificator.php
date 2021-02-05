@@ -41,6 +41,27 @@ class Servers_Health extends TG_Notificator {
     protected const srv_config = [
         'Space' => ['limit' => 90]
     ];
+    
+    /** Property: array "serverBase"
+     * ******************************
+     * 
+     * An array of the required
+     * informations your servers
+     * 
+     * example:
+     *  SERVER ID => [ 
+     *      "name" => NAME SERVER
+     *      "ip" => IP FOR CONNECTING SERVER
+     *      "user" => USER ON SERVER 
+     *      "partitions" => [LISTING PARTITIONS FOR CHECKING]
+     *  ]
+     * 
+     * SERVER ID can be any number of yours, 
+     * by which it is more convenient for you to identify your server. 
+     * It must not be reused in this array! 
+     * In the future, the script will use this information in the database. 
+     * (eg last num in ip: [XXX.XXX.X.]254)
+     */
 
     protected $serversBase = [
         230 => [
@@ -80,6 +101,40 @@ class Servers_Health extends TG_Notificator {
             ]
         ]
     ];
+
+    public function __construct() {
+        if (!file_exists("base.db")) {
+            $db = new SQLite3("base.db");
+            $db->query('
+                CREATE TABLE srv_space (
+                    srv_id INTEGER NOT NULL PRIMARY KEY, 
+                    last_count_proc INTEGER NOT NULL DEFAULT 0
+                );
+            ');
+            $this->comment("Created DB."); #
+            $db->close();
+            $this->__construct();
+        } else {
+            $db = new SQLite3("base.db");
+            $db_srv_count = $db->querySingle('SELECT COUNT(*) FROM srv_space;');
+
+            if (!$db_srv_count || $db_srv_count <= count($this->serversBase)) {
+                foreach ($this->serversBase as $srv_id => $value) { 
+                    $db_srv_id = $db->querySingle("SELECT srv_id FROM srv_space WHERE srv_id=$srv_id");
+                    
+                    if (!$db_srv_id) {
+                        $db->query("INSERT INTO srv_space (srv_id) VALUES ($srv_id);");
+                        $this->comment($value['name']." added to DB."); #
+                    }
+                }
+                $db->close();
+            } else {
+                $db->close();
+            }
+            
+            $this->comment("DB status: OK!"); #
+        }
+    }
 
     public function sshRequest($user = '', $server = '', $command = '') { //SSH request method
         if (!$user || !$server || !$command) {
@@ -122,11 +177,12 @@ class Servers_Health extends TG_Notificator {
 }
 
 $tg_notificator = new TG_Notificator;
-$serverHealth = new Servers_Health;
+$serversHealth = new Servers_Health;
 
 if (!empty($argv['1'])) { //The rule to exclude error
     //Listing Your rules for used arguments and method calling:
-    if ($argv['1'] == 'check-space-servers') $serverHealth->checkSpaceServers(90);
+    if ($argv['1'] == 'check-space-servers') $serversHealth->checkSpaceServers(90);
+    //elseif ($argv['1'] == 'check-db') $serversHealth->check_srv_db();
 
     else $tg_notificator->comment("incorrect argument.");
 } else $tg_notificator->comment("not fount argument.");

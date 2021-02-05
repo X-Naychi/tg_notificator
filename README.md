@@ -9,7 +9,7 @@ You need to enter these commands for installing required packages:
 Install:
 ```
 sudo apt update
-sudo apt install php7.*-cli php7.*-curl
+sudo apt install php7.*-cli php7.*-curl php7.*-sqlite3
 ```
 
 **Linux CentOS 7 (it is not confirmed)**
@@ -29,7 +29,7 @@ sudo yum-config-manager --enable remi-php7*
 Install:
 ```
 sudo yum update
-sudo yum install php7*-cli php7.*-curl
+sudo yum install php7*-cli php7.*-curl php7.*-sqlite3
 ```
 
 ### Preparing the script for use
