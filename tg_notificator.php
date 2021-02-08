@@ -63,7 +63,7 @@ class Servers_Health extends TG_Notificator {
      * by which it is more convenient for you to identify your server. 
      * It must not be reused in this array! 
      * In the future, the script will use this information in the database. 
-     * (eg last num in ip: [XXX.XXX.X.]254)
+     * (eg last num in ip: [XXX.XXX.XXX.]254)
      */
 
     protected $serversBase = [
@@ -106,37 +106,58 @@ class Servers_Health extends TG_Notificator {
     ];
 
     public function __construct() {
-        if (!file_exists("base.db")) {
-            $db = new SQLite3("base.db");
+        $db = new SQLite3("base.db");
+        $check_table = $db->querySingle("SELECT name FROM sqlite_master WHERE type='table' AND name='srv_space';");
+
+        if (!$check_table) {
             $db->query('
                 CREATE TABLE srv_space (
-                    srv_id INTEGER NOT NULL PRIMARY KEY, 
+                    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
+                    srv_id INTEGER NOT NULL, 
+                    partition INTEGER NOT NULL,
                     last_percentage INTEGER NOT NULL DEFAULT 0
                 );
             ');
             $this->comment("Created DB."); #
-            $db->close();
-            $this->__construct();
-        } else {
-            $db = new SQLite3("base.db");
-            $db_srv_count = $db->querySingle('SELECT COUNT(*) FROM srv_space;');
+        }
+            
+        $all_parts = $this->dbGetArray($db, "SELECT id, srv_id, partition FROM srv_space");
 
-            if (!$db_srv_count || $db_srv_count <= count($this->serversBase)) {
-                foreach ($this->serversBase as $srv_id => $value) { 
-                    $db_srv_id = $db->querySingle("SELECT srv_id FROM srv_space WHERE srv_id=$srv_id");
-                    
-                    if (!$db_srv_id) {
-                        $db->query("INSERT INTO srv_space (srv_id) VALUES ($srv_id);");
-                        $this->comment($value['name']." added to DB."); #
+        foreach ($this->serversBase as $srv_id => $value) {
+            foreach ($value['partitions'] as $partitions) {
+                $result = $this->dbGetArray($db, "SELECT id, srv_id, partition FROM srv_space WHERE srv_id='".$srv_id."' AND partition='".$partitions."'");
+                if (!count($result)) {
+                    $db->query("INSERT INTO srv_space (srv_id, partition) VALUES ($srv_id, '$partitions');");
+                    $this->comment($value['name'].' - "'.$partitions."\" added to DB.");
+                } else {
+                    foreach ($result as $res) {
+                        $existing_part_ids[] = $res['id'];
                     }
                 }
-                $db->close();
-            } else {
-                $db->close();
             }
-            
-            $this->comment("DB status: OK!"); #
         }
+
+        foreach ($all_parts as $db_ids) {
+            if (!in_array($db_ids['id'], $existing_part_ids)) {
+                $db->query("DELETE FROM srv_space WHERE id=".$db_ids['id']);
+                $this->comment("DELETED: ".$db_ids['id'].' - '.$db_ids['partition']);
+            }
+        }
+
+        $this->comment("DB status: OK!");
+        
+    }
+
+    private function dbGetArray($database, $query) {
+        $db_srv = $database->query($query);
+        $array = [];
+
+        if (!empty($db_srv)) {
+            while ($data = $db_srv->fetchArray()) {
+                $array[] = $data;
+            } 
+        }
+        return $array;
     }
 
     public function sshRequest($user = '', $server = '', $command = '') { //SSH request method
@@ -151,27 +172,42 @@ class Servers_Health extends TG_Notificator {
         return shell_exec($cmd);
     }
 
-    public static function writeLastCountSpaceServers() {
-        //Здесь будет запись с использованием SQLite
-    }
+    public function checkLVS($id, $current_percentage) { # LVS - Last Value Space
 
-    public static function checkLastCountSpaceServers() {
-        //Здесь будет проверка с использованием SQLite
+        #TODO This does not work!!!
+
+        /*$this->comment("cheking used space on servers...");
+        $db = new SQLite3("base.db");
+        $last_percentage = $db->querySingle("SELECT last_percentage FROM srv_space WHERE id=$id");
+
+        if ($last_percentage != $current_percentage) {
+            $db->query("UPDATE srv_space SET last_percentage=$current_percentage WHERE id=$id");
+            $db->close();
+            return true;
+        } else {
+            $db->close();
+            return false;
+        }*/
+
     }
 
     public function checkSpaceServers() { // Main method for sended warning notifications if used space >= limit
         $this->comment("cheking used space on servers...");
-        foreach ($this->serversBase as $srv) {
+
+        foreach ($this->serversBase as $id => $srv) {
             foreach ($srv["partitions"] as $partition) {
                 $percentage = $this->sshRequest($srv['user'], $srv['ip'], "df -h --output=pcent /mnt/$partition | tr -dc '0-9'");
-                $partition = ($partition == "1199161F24AC2113") ? $partition." (Backups)" : $partition;
+                //$last_percentage = $this->checkLVS($id, $percentage);
+                $partition = ($partition == "1199161F24AC2113") ? $partition." (Backups)" : $partition;     # FOR X-NAYCHI
 
-                if ($percentage >= $this::srv_config['Space']['limit']) {
+                if ($percentage >= $this::srv_config['Space']['limit'] && !empty($last_percentage)) {
                     $text = "ВНИМАНИЕ!%0AЗаканчивается свободное место на сервере!%0A%0AСервер: ".
                         $srv['name']."%0AРаздел: $partition%0AИспользованного пространства: $percentage%";
                     $this->comment("sending warning to Telehram...");
                     $this->sendTelegram($text);
-                }
+                } /*elseif ($percentage >= $this::srv_config['Space']['limit'] && !$last_percentage) {
+                    $this->comment("there was already a notification about this.");
+                }*/
             }
         }
         $this->comment("successful.");
@@ -185,7 +221,6 @@ $serversHealth = new Servers_Health;
 if (!empty($argv['1'])) { //The rule to exclude error
     //Listing Your rules for used arguments and method calling:
     if ($argv['1'] == 'check-space-servers') $serversHealth->checkSpaceServers(90);
-    //elseif ($argv['1'] == 'check-db') $serversHealth->check_srv_db();
 
     else $tg_notificator->comment("ERROR: incorrect argument.");
 } else $tg_notificator->comment("ERROR: not fount argument.");
