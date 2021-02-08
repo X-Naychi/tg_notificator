@@ -63,7 +63,7 @@ class Servers_Health extends TG_Notificator {
      * by which it is more convenient for you to identify your server. 
      * It must not be reused in this array! 
      * In the future, the script will use this information in the database. 
-     * (eg last num in ip: [XXX.XXX.X.]254)
+     * (eg last num in ip: [XXX.XXX.XXX.]254)
      */
 
     protected $serversBase = [
@@ -121,32 +121,30 @@ class Servers_Health extends TG_Notificator {
             $this->db();
         } else {
             $db = new SQLite3("base.db");
+            
+            $all_parts = $this->dbGetArray($db, "SELECT id, srv_id, partition FROM srv_space");
 
-            /*$db_srv_count = $db->querySingle('SELECT COUNT(*) FROM srv_space;');
-            $partitions_count = 0;
-            foreach ($this->serversBase as $srv_id => $value) { 
-                $partitions_count += count($value['partitions']);
-            }*/
-
-            foreach ($this->serversBase as $srv_id => $value) { 
-                $db_srv_data = $this->dbGetArray($db, "SELECT id, srv_id, partition FROM srv_space WHERE srv_id=$srv_id");
-                
+            foreach ($this->serversBase as $srv_id => $value) {
                 foreach ($value['partitions'] as $partitions) {
-                    
-                    if (!$db_srv_data) {
+                    $result = $this->dbGetArray($db, "SELECT id, srv_id, partition FROM srv_space WHERE srv_id='".$srv_id."' AND partition='".$partitions."'");
+                    if (!count($result)) {
                         $db->query("INSERT INTO srv_space (srv_id, partition) VALUES ($srv_id, '$partitions');");
-                        $this->comment($value['name'].' - "'.$partitions."\" added to DB."); #
+                        $this->comment($value['name'].' - "'.$partitions."\" added to DB.");
                     } else {
-                        print_r($db_srv_data);
-                        /*foreach($db_srv_data as $db_data) {                     #TODO This does not work
-                            if ($db_data['partition'] != $partitions) {         #TODO This does not work
-                                $this->comment("DELETED id=".$db_data['id']);   #TODO This does not work
-                            }                                                   #TODO This does not work
-                        }*/                                                       #TODO This does not work
+                        foreach ($result as $res) {
+                            $existing_part_ids[] = $res['id'];
+                        }
                     }
                 }
             }
-            
+
+            foreach ($all_parts as $db_ids) {
+                if (!in_array($db_ids['id'], $existing_part_ids)) {
+                    $db->query("DELETE FROM srv_space WHERE id=".$db_ids['id']);
+                    $this->comment("DELETED: ".$db_ids['id'].' - '.$db_ids['partition']);
+                }
+            }
+
             $this->comment("DB status: OK!"); # */
         }
     }
