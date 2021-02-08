@@ -105,9 +105,11 @@ class Servers_Health extends TG_Notificator {
         ]
     ];
 
-    public function db() {
-        if (!file_exists("base.db")) {
-            $db = new SQLite3("base.db");
+    public function __construct() {
+        $db = new SQLite3("base.db");
+        $check_table = $db->querySingle("SELECT name FROM sqlite_master WHERE type='table' AND name='srv_space';");
+
+        if (!$check_table) {
             $db->query('
                 CREATE TABLE srv_space (
                     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
@@ -117,36 +119,33 @@ class Servers_Health extends TG_Notificator {
                 );
             ');
             $this->comment("Created DB."); #
-            $db->close();
-            $this->db();
-        } else {
-            $db = new SQLite3("base.db");
+        }
             
-            $all_parts = $this->dbGetArray($db, "SELECT id, srv_id, partition FROM srv_space");
+        $all_parts = $this->dbGetArray($db, "SELECT id, srv_id, partition FROM srv_space");
 
-            foreach ($this->serversBase as $srv_id => $value) {
-                foreach ($value['partitions'] as $partitions) {
-                    $result = $this->dbGetArray($db, "SELECT id, srv_id, partition FROM srv_space WHERE srv_id='".$srv_id."' AND partition='".$partitions."'");
-                    if (!count($result)) {
-                        $db->query("INSERT INTO srv_space (srv_id, partition) VALUES ($srv_id, '$partitions');");
-                        $this->comment($value['name'].' - "'.$partitions."\" added to DB.");
-                    } else {
-                        foreach ($result as $res) {
-                            $existing_part_ids[] = $res['id'];
-                        }
+        foreach ($this->serversBase as $srv_id => $value) {
+            foreach ($value['partitions'] as $partitions) {
+                $result = $this->dbGetArray($db, "SELECT id, srv_id, partition FROM srv_space WHERE srv_id='".$srv_id."' AND partition='".$partitions."'");
+                if (!count($result)) {
+                    $db->query("INSERT INTO srv_space (srv_id, partition) VALUES ($srv_id, '$partitions');");
+                    $this->comment($value['name'].' - "'.$partitions."\" added to DB.");
+                } else {
+                    foreach ($result as $res) {
+                        $existing_part_ids[] = $res['id'];
                     }
                 }
             }
-
-            foreach ($all_parts as $db_ids) {
-                if (!in_array($db_ids['id'], $existing_part_ids)) {
-                    $db->query("DELETE FROM srv_space WHERE id=".$db_ids['id']);
-                    $this->comment("DELETED: ".$db_ids['id'].' - '.$db_ids['partition']);
-                }
-            }
-
-            $this->comment("DB status: OK!"); # */
         }
+
+        foreach ($all_parts as $db_ids) {
+            if (!in_array($db_ids['id'], $existing_part_ids)) {
+                $db->query("DELETE FROM srv_space WHERE id=".$db_ids['id']);
+                $this->comment("DELETED: ".$db_ids['id'].' - '.$db_ids['partition']);
+            }
+        }
+
+        $this->comment("DB status: OK!");
+        
     }
 
     private function dbGetArray($database, $query) {
@@ -222,7 +221,6 @@ $serversHealth = new Servers_Health;
 if (!empty($argv['1'])) { //The rule to exclude error
     //Listing Your rules for used arguments and method calling:
     if ($argv['1'] == 'check-space-servers') $serversHealth->checkSpaceServers(90);
-    elseif ($argv['1'] == 'check-db') $serversHealth->db();
 
     else $tg_notificator->comment("ERROR: incorrect argument.");
 } else $tg_notificator->comment("ERROR: not fount argument.");
