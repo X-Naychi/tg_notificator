@@ -57,10 +57,11 @@ class Servers_Health extends TG_Notificator {
      * 
      * example:
      *  SERVER ID => [ 
-     *      "name" => NAME SERVER
-     *      "ip" => IP FOR CONNECTING SERVER
-     *      "user" => USER ON SERVER 
-     *      "partitions" => [LISTING PARTITIONS FOR CHECKING]
+     *      "name" => NAME SERVER,
+     *      "ip" => IP FOR CONNECTING SERVER,
+     *      "user" => USER ON SERVER ,
+     *      "ssh port" => PORT FOR CONNECTING SERVER,
+     *      "partitions" => [LISTING PARTITIONS FOR CHECKING],
      *  ]
      * 
      * SERVER ID can be any number of yours, 
