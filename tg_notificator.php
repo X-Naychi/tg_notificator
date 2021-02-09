@@ -9,7 +9,7 @@ class TG_Notificator {
     ];
 
     protected const chat_id = [     // List ID of recipient
-        "ci_dev" => "335260959"     // nickname => id
+        "" => "XXXXXXXXX"     // nickname => id
     ];
 
     public function comment($string) {
@@ -71,6 +71,7 @@ class Servers_Health extends TG_Notificator {
             "name" => "Terminal Server",
             "ip" => "10.10.7.230",
             "user" => "sysroot",
+            "ssh port" => "2233",
             "partitions" => [
                 "1199161F24AC2113", 
                 "FileResourseSSD"
@@ -80,6 +81,7 @@ class Servers_Health extends TG_Notificator {
             "name" => "Server AHP",
             "ip" => "10.10.7.110",
             "user" => "sysadmin",
+            "ssh port" => "2233",
             "partitions" => [
                 "File-BackUp", 
                 "File-Resouce"
@@ -89,6 +91,7 @@ class Servers_Health extends TG_Notificator {
             "name" => "Reserve Backups Server",
             "ip" => "10.10.7.102",
             "user" => "sysadmin",
+            "ssh port" => "2233",
             "partitions" => [
                 "Backups_One"
             ]
@@ -97,6 +100,7 @@ class Servers_Health extends TG_Notificator {
             "name" => "Backup File Server",
             "ip" => "10.10.7.227",
             "user" => "sysadmin",
+            "ssh port" => "2233",
             "partitions" => [
                 "VB_Backups1000+", 
                 "File_Resource", 
@@ -160,13 +164,12 @@ class Servers_Health extends TG_Notificator {
         return $array;
     }
 
-    public function sshRequest($user = '', $server = '', $command = '') { //SSH request method
+    public function sshRequest($user = '', $server = '', $port = '22',  $command = '') { //SSH request method
         if (!$user || !$server || !$command) {
             echo "Error in param for 'sshRequest()'";
             return false;
         }
 
-        $port = "2233"; // SSH port for connection
         $cmd = "ssh -p $port $user@$server \"$command\""; // SSH request
         
         return shell_exec($cmd);
@@ -194,7 +197,8 @@ class Servers_Health extends TG_Notificator {
 
         foreach ($this->serversBase as $id => $srv) {
             foreach ($srv["partitions"] as $partition) {
-                $percentage = $this->sshRequest($srv['user'], $srv['ip'], "df -h --output=pcent /mnt/$partition | tr -dc '0-9'");
+                $percentage = $this->sshRequest($srv['user'], $srv['ip'], $srv['ssh port'], "df -h --output=pcent /mnt/$partition | tr -dc '0-9'");
+                $this->comment($percentage);
                 $last_percentage = $this->checkLVS($id, $partition, $percentage);
                 $partition = ($partition == "1199161F24AC2113") ? $partition." (Backups)" : $partition;     # FOR X-NAYCHI
 
@@ -220,5 +224,8 @@ if (!empty($argv['1'])) { //The rule to exclude error
     //Listing Your rules for used arguments and method calling:
     if ($argv['1'] == 'check-space-servers') $serversHealth->checkSpaceServers();
 
+
+    //End of listing your rules
     else $tg_notificator->comment("ERROR: incorrect argument.");
-} else $tg_notificator->comment("ERROR: not fount argument.");
+} 
+else $tg_notificator->comment("ERROR: not fount argument.");
