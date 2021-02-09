@@ -1,6 +1,10 @@
 #!/usr/bin/php
 
 <?php
+/**
+ * Author: X-Naychi
+ * GitHub: https://github.com/X-Naychi
+ */
 
 class TG_Notificator {
     protected const api_config = [
