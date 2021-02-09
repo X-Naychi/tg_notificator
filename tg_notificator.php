@@ -67,44 +67,24 @@ class Servers_Health extends TG_Notificator {
      */
 
     protected $serversBase = [
-        230 => [
-            "name" => "Terminal Server",
-            "ip" => "10.10.7.230",
-            "user" => "sysroot",
-            "ssh port" => "2233",
+        100 => [
+            "name" => "example_1",
+            "ip" => "192.168.1.100",
+            "user" => "example",
+            "ssh port" => "22",
             "partitions" => [
-                "1199161F24AC2113", 
-                "FileResourseSSD"
+                "example_partition_1", 
+                "example_partition_2"
             ]
         ],
-        110 => [
-            "name" => "Server AHP",
-            "ip" => "10.10.7.110",
-            "user" => "sysadmin",
-            "ssh port" => "2233",
+        200 => [
+            "name" => "example_2",
+            "ip" => "192.168.1.200",
+            "user" => "example",
+            "ssh port" => "22",
             "partitions" => [
-                "File-BackUp", 
-                "File-Resouce"
-            ]
-        ],
-        102 => [
-            "name" => "Reserve Backups Server",
-            "ip" => "10.10.7.102",
-            "user" => "sysadmin",
-            "ssh port" => "2233",
-            "partitions" => [
-                "Backups_One"
-            ]
-        ],
-        227 => [
-            "name" => "Backup File Server",
-            "ip" => "10.10.7.227",
-            "user" => "sysadmin",
-            "ssh port" => "2233",
-            "partitions" => [
-                "VB_Backups1000+", 
-                "File_Resource", 
-                "Share"
+                "example_partition_1", 
+                "example_partition_2"
             ]
         ]
     ];
@@ -198,7 +178,6 @@ class Servers_Health extends TG_Notificator {
         foreach ($this->serversBase as $id => $srv) {
             foreach ($srv["partitions"] as $partition) {
                 $percentage = $this->sshRequest($srv['user'], $srv['ip'], $srv['ssh port'], "df -h --output=pcent /mnt/$partition | tr -dc '0-9'");
-                $this->comment($percentage);
                 $last_percentage = $this->checkLVS($id, $partition, $percentage);
                 $partition = ($partition == "1199161F24AC2113") ? $partition." (Backups)" : $partition;     # FOR X-NAYCHI
 
