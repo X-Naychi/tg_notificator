@@ -114,7 +114,7 @@ class Servers_Health extends TG_Notificator {
                 CREATE TABLE srv_space (
                     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
                     srv_id INTEGER NOT NULL, 
-                    partition INTEGER NOT NULL,
+                    partition VARCHAR(64) NOT NULL,
                     last_percentage INTEGER NOT NULL DEFAULT 0
                 );
             ');
