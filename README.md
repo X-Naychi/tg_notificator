@@ -4,7 +4,7 @@
 
 You need to enter these commands for installing required packages:
 
-#### Linux Ubintu/Debian**
+#### Linux Ubintu/Debian
 
 Install:
 ```
