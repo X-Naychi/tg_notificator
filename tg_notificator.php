@@ -121,31 +121,31 @@ class Servers_Health extends TG_Notificator {
             $this->comment("Created DB."); #
         }
             
-        $all_parts = $this->dbGetArray($db, "SELECT id, srv_id, partition FROM srv_space");
+        $db_all_partition = $this->dbGetArray($db, "SELECT id, srv_id, partition FROM srv_space");
 
         foreach ($this->serversBase as $srv_id => $value) {
             foreach ($value['partitions'] as $partitions) {
-                $result = $this->dbGetArray($db, "SELECT id, srv_id, partition FROM srv_space WHERE srv_id='".$srv_id."' AND partition='".$partitions."'");
-                if (!count($result)) {
+                $db_row_partition = $this->dbGetArray($db, "SELECT id, srv_id, partition FROM srv_space WHERE srv_id='".$srv_id."' AND partition='".$partitions."'");
+                if (!count($db_row_partition)) {
                     $db->query("INSERT INTO srv_space (srv_id, partition) VALUES ($srv_id, '$partitions');");
                     $this->comment($value['name'].' - "'.$partitions."\" added to DB.");
                 } else {
-                    foreach ($result as $res) {
+                    foreach ($db_row_partition as $res) {
                         $existing_part_ids[] = $res['id'];
                     }
                 }
             }
         }
 
-        foreach ($all_parts as $db_ids) {
-            if (!in_array($db_ids['id'], $existing_part_ids)) {
-                $db->query("DELETE FROM srv_space WHERE id=".$db_ids['id']);
-                $this->comment("DELETED: ".$db_ids['id'].' - '.$db_ids['partition']);
+        foreach ($db_all_partition as $db_part) {
+            if (!in_array($db_part['id'], $existing_part_ids)) {
+                $db->query("DELETE FROM srv_space WHERE id=".$db_part['id']);
+                $this->comment("DELETED: ".$db_part['id'].' - '.$db_part['partition']);
             }
         }
 
         $this->comment("DB status: OK!");
-        
+        $db->close();
     }
 
     private function dbGetArray($database, $query) {
@@ -172,23 +172,21 @@ class Servers_Health extends TG_Notificator {
         return shell_exec($cmd);
     }
 
-    public function checkLVS($id, $current_percentage) { # LVS - Last Value Space
-
-        #TODO This does not work!!!
-
-        /*$this->comment("cheking used space on servers...");
+    public function checkLVS($srv_id, $partition, $current_percentage) { # LVS - Last Value Space
         $db = new SQLite3("base.db");
-        $last_percentage = $db->querySingle("SELECT last_percentage FROM srv_space WHERE id=$id");
+        $db_partitions = $this->dbGetArray($db, "SELECT id, last_percentage FROM srv_space WHERE srv_id='$srv_id' AND partition='$partition'");
 
-        if ($last_percentage != $current_percentage) {
-            $db->query("UPDATE srv_space SET last_percentage=$current_percentage WHERE id=$id");
-            $db->close();
-            return true;
-        } else {
-            $db->close();
-            return false;
-        }*/
-
+        foreach ($db_partitions as $db_parts) {
+            if ($db_parts['last_percentage'] != $current_percentage) {
+                $db->query("UPDATE srv_space SET last_percentage=$current_percentage WHERE id=".$db_parts['id']);
+                $this->comment("Last percentage changed: ". $db_parts['last_percentage']." ---> ".$current_percentage." ........ [".$srv_id." - ".$partition."]");
+                $db->close();
+                return true;
+            } else {
+                $db->close();
+                return false;
+            }
+        }
     }
 
     public function checkSpaceServers() { // Main method for sended warning notifications if used space >= limit
@@ -197,7 +195,7 @@ class Servers_Health extends TG_Notificator {
         foreach ($this->serversBase as $id => $srv) {
             foreach ($srv["partitions"] as $partition) {
                 $percentage = $this->sshRequest($srv['user'], $srv['ip'], "df -h --output=pcent /mnt/$partition | tr -dc '0-9'");
-                //$last_percentage = $this->checkLVS($id, $percentage);
+                $last_percentage = $this->checkLVS($id, $partition, $percentage);
                 $partition = ($partition == "1199161F24AC2113") ? $partition." (Backups)" : $partition;     # FOR X-NAYCHI
 
                 if ($percentage >= $this::srv_config['Space']['limit'] && !empty($last_percentage)) {
@@ -205,9 +203,9 @@ class Servers_Health extends TG_Notificator {
                         $srv['name']."%0AРаздел: $partition%0AИспользованного пространства: $percentage%";
                     $this->comment("sending warning to Telehram...");
                     $this->sendTelegram($text);
-                } /*elseif ($percentage >= $this::srv_config['Space']['limit'] && !$last_percentage) {
-                    $this->comment("there was already a notification about this.");
-                }*/
+                } elseif ($percentage >= $this::srv_config['Space']['limit'] && !$last_percentage) {
+                    $this->comment("there was already a notification about this. [$id - $partition: $percentage%]");
+                }
             }
         }
         $this->comment("successful.");
@@ -220,7 +218,7 @@ $serversHealth = new Servers_Health;
 
 if (!empty($argv['1'])) { //The rule to exclude error
     //Listing Your rules for used arguments and method calling:
-    if ($argv['1'] == 'check-space-servers') $serversHealth->checkSpaceServers(90);
+    if ($argv['1'] == 'check-space-servers') $serversHealth->checkSpaceServers();
 
     else $tg_notificator->comment("ERROR: incorrect argument.");
 } else $tg_notificator->comment("ERROR: not fount argument.");
