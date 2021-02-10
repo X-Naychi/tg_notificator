@@ -41,17 +41,21 @@ sudo yum install php7*-cli php7.*-curl php7.*-sqlite3
 ```php
 protected const api_config = [
     "api" => "https://api.telegram.org/bot",
-    "token" => "", //TOKEN YOUR BOT
+    "token" => "", // TOKEN YOUR BOT
 ];
 
 protected const chat_id = [     // List ID of recipient
-    "" => "XXXXXXXXX"     // nickname => id
+    "" => "XXXXXXXXX"           // nickname => id
 ];
 ```
 
-- Also, you need to fill in the "$serversBase" property(array) (this is a config property) in the "Servers_Health" class, according to the example specified in the script
+- Also, you need to fill in the "srv_config" and "$serversBase" property (array) in the "Servers_Health" class, according to the example specified in the script
 
 ```php
+protected const srv_config = [
+    'Space' => ['limit' => 90] // Your limited percentage
+];
+
 protected $serversBase = [
     100 => [
         "name" => "example_1",

@@ -46,7 +46,7 @@ class TG_Notificator {
 class Servers_Health extends TG_Notificator {
 
     protected const srv_config = [
-        'Space' => ['limit' => 90]
+        'Space' => ['limit' => 90] // Your limited percentage
     ];
     
     /** Property: array "serverBase"
@@ -107,7 +107,7 @@ class Servers_Health extends TG_Notificator {
                     last_percentage INTEGER NOT NULL DEFAULT 0
                 );
             ');
-            $this->comment("Created DB."); #
+            $this->comment("Created DB.");
         }
             
         $db_all_partition = $this->dbGetArray($db, "SELECT id, srv_id, partition FROM srv_space");
@@ -165,9 +165,10 @@ class Servers_Health extends TG_Notificator {
         $db_partitions = $this->dbGetArray($db, "SELECT id, last_percentage FROM srv_space WHERE srv_id='$srv_id' AND partition='$partition'");
 
         foreach ($db_partitions as $db_parts) {
-            if ($db_parts['last_percentage'] != $current_percentage) {
+            if ($db_parts['last_percentage'] != $current_percentage && !empty($current_percentage)) {
                 $db->query("UPDATE srv_space SET last_percentage=$current_percentage WHERE id=".$db_parts['id']);
                 $this->comment("Last percentage changed: ". $db_parts['last_percentage']." ---> ".$current_percentage." ........ [".$srv_id." - ".$partition."]");
+                
                 $db->close();
                 return true;
             } else {
@@ -184,7 +185,6 @@ class Servers_Health extends TG_Notificator {
             foreach ($srv["partitions"] as $partition) {
                 $percentage = $this->sshRequest($srv['user'], $srv['ip'], "df -h --output=pcent /mnt/$partition | tr -dc '0-9'", $srv['ssh port']);
                 $last_percentage = $this->checkLVS($id, $partition, $percentage);
-                $partition = ($partition == "1199161F24AC2113") ? $partition." (Backups)" : $partition;     # FOR X-NAYCHI
 
                 if ($percentage >= $this::srv_config['Space']['limit'] && !empty($last_percentage)) {
                     $text = "ВНИМАНИЕ!%0AЗаканчивается свободное место на сервере!%0A%0AСервер: ".
