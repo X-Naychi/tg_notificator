@@ -149,7 +149,7 @@ class Servers_Health extends TG_Notificator {
         return $array;
     }
 
-    public function sshRequest($user = '', $server = '', $port = '22',  $command = '') { //SSH request method
+    public function sshRequest($user = '', $server = '',  $command = '', $port = '22') { //SSH request method
         if (!$user || !$server || !$command) {
             echo "Error in param for 'sshRequest()'";
             return false;
@@ -182,7 +182,7 @@ class Servers_Health extends TG_Notificator {
 
         foreach ($this->serversBase as $id => $srv) {
             foreach ($srv["partitions"] as $partition) {
-                $percentage = $this->sshRequest($srv['user'], $srv['ip'], $srv['ssh port'], "df -h --output=pcent /mnt/$partition | tr -dc '0-9'");
+                $percentage = $this->sshRequest($srv['user'], $srv['ip'], "df -h --output=pcent /mnt/$partition | tr -dc '0-9'", $srv['ssh port']);
                 $last_percentage = $this->checkLVS($id, $partition, $percentage);
                 $partition = ($partition == "1199161F24AC2113") ? $partition." (Backups)" : $partition;     # FOR X-NAYCHI
 
