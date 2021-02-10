@@ -88,7 +88,7 @@ P.S. I recommend running the script if you have configured login to the server v
 
 ### **What's next?**
 
-You can download and develop the script yourself the way you want, if you figure out my incomprehensible code :blush:
+You can fork or download and develop the script yourself the way you want, if you figure out my incomprehensible code :blush:
 
 I will also, as far as possible, develop this little script. In the future, I plan to add features such as:
 
