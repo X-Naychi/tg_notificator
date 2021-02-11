@@ -61,7 +61,7 @@ class Servers_Health extends TG_Notificator {
      *      "ip" => IP FOR CONNECTING SERVER,
      *      "user" => USER ON SERVER ,
      *      "ssh port" => PORT FOR CONNECTING SERVER,
-     *      "partitions" => [LISTING PARTITIONS FOR CHECKING],
+     *      "partitions" => [LISTING PATHS TO PARTITIONS FOR CHECKING RELATIVE TO "/mnt" OR ABSOLUTE],
      *  ]
      * 
      * SERVER ID can be any number of yours, 
@@ -129,7 +129,7 @@ class Servers_Health extends TG_Notificator {
         foreach ($db_all_partition as $db_part) {
             if (!in_array($db_part['id'], $existing_part_ids)) {
                 $db->query("DELETE FROM srv_space WHERE id=".$db_part['id']);
-                $this->comment("DELETED: ".$db_part['id'].' - '.$db_part['partition']);
+                $this->comment("DELETED in DB: ".$db_part['id'].' - '.$db_part['partition']);
             }
         }
 
@@ -183,7 +183,8 @@ class Servers_Health extends TG_Notificator {
 
         foreach ($this->serversBase as $id => $srv) {
             foreach ($srv["partitions"] as $partition) {
-                $percentage = $this->sshRequest($srv['user'], $srv['ip'], "df -h --output=pcent /mnt/$partition | tr -dc '0-9'", $srv['ssh port']);
+                $partition_path = (substr($partition, 0, 1) === "/") ? "/" : "/mnt/$partition";     // Relative to "/mnt" or absolute path
+                $percentage = $this->sshRequest($srv['user'], $srv['ip'], "df -h --output=pcent $partition_path | tr -dc '0-9'", $srv['ssh port']);
                 $last_percentage = $this->checkLVS($id, $partition, $percentage);
 
                 if ($percentage >= $this::srv_config['Space']['limit'] && !empty($last_percentage)) {

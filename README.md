@@ -62,9 +62,9 @@ protected $serversBase = [
         "ip" => "192.168.1.100",
         "user" => "example",
         "ssh port" => "22",
-        "partitions" => [
-            "example_partition_1", 
-            "example_partition_2"
+        "partitions" => [               // Relative to "/mnt" or absolute path 
+            "example_partition_1",      // Relative to "/mnt"
+            "/example_partition_2"      // Absolute path
         ]
     ],
     200 => [
@@ -73,8 +73,9 @@ protected $serversBase = [
         "user" => "example",
         "ssh port" => "22",
         "partitions" => [
-            "example_partition_1", 
-            "example_partition_2"
+            "/",                        // Absolute path
+            "/home",                    // Absolute path
+            "example_partition"         // Relative to "/mnt"
         ]
     ]
 ];
