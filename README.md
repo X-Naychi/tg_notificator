@@ -44,8 +44,8 @@ protected const api_config = [
     "token" => "", // TOKEN YOUR BOT
 ];
 
-protected const chat_id = [     // List ID of recipient
-    "" => "XXXXXXXXX"           // nickname => id
+protected const chat_id = [             // List ID of recipient
+    "" => "XXXXXXXXX"                   // nickname => id
 ];
 ```
 
@@ -53,7 +53,7 @@ protected const chat_id = [     // List ID of recipient
 
 ```php
 protected const srv_config = [
-    'Space' => ['limit' => 90] // Your limited percentage
+    'Space' => ['limit' => 90]          // Your limited percentage
 ];
 
 protected $serversBase = [
